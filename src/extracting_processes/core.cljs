@@ -13,6 +13,7 @@
   (-select! [list n])
   (-unselect! [list n]))
 
+; Highlighting and selecting for vec->indented str ui
 (defn set-select-column [list n val]
   (if n
     (update-in list [n] #(string/replace % #"^.." (str " " val)))
@@ -46,10 +47,6 @@
    "   Prolog"
    "   ML"])
 
-(defn set-output! [names]
-  (let [output (jq/$ "#output")]
-    (jq/text output (string/join "\n" names))))
-
 ; Utility
 (defn on-keydown [target f]
   (aset target "onkeydown" f))
@@ -82,20 +79,22 @@
   {:highlight/previous -1
    :highlight/next     +1})
 
-(defn selected [sel-w-hl]
-  (ps/reductions*
-    sel-w-hl
-    (ps/fmap
-      (fn [{:keys [highlight selection] :as mem} event]
-        (if (= event :select/current)
-          (assoc mem :selection highlight)
-          (assoc mem :highlight event))))
-    (ps/promise {:highlight 0 :selection nil})))
+(defn remember-selection
+  "Stores current highlight as selection when select events occur. Otherwise
+  updates remembered highlight."
+  [{:keys [highlight selection] :as mem} event]
+  (if (= event :select/current)
+    (assoc mem :selection highlight)
+    (assoc mem :highlight event)))
 
 (defn render-ui [ui {:keys [highlight selection]}]
-  (-> ui
+  (string/join "\n"
+    (-> ui
       (-select! selection)
-      (-highlight! highlight)))
+      (-highlight! highlight))))
+
+(def first-state
+  {:highlight 0 :selection nil})
 
 ; Pure stream processing
 (defn selection [ui keydowns]
@@ -111,16 +110,18 @@
 
         selects     (ps/filter* (comp ps/promise select-actions) actions)
         sel-w-hl    (ps/concat* selects wrapped-hl)
-        s-n-hl-mem  (selected sel-w-hl)
-
-        ui          (ps/mapd* (partial render-ui ui) s-n-hl-mem)]
-    ui))
+        s-n-hl-mem  (ps/reductions* sel-w-hl
+                                    (ps/fmap remember-selection)
+                                    (ps/promise first-state))]
+    (ps/mapd* (partial render-ui ui) s-n-hl-mem)))
 
 ; Bootstrap
+(defn set-output! [names]
+    (jq/text (jq/$ "#output") names))
+
 (->>
   (sources/callback->promise-stream on-keydown js/document)
   (selection ex1-ui)
   (ps/mapd* set-output!))
 
-(jq/$ (fn []
-        (set-output! (-highlight! ex1-ui 0))))
+(jq/$ #(set-output! (render-ui ex1-ui first-state)))
