@@ -71,7 +71,7 @@
 
 ; Pure stream processing
 (defn selection [ui keydowns]
- (let [keycodes    (ps/mapd*    #(aget % "which") keydowns) 
+  (let [keycodes    (ps/mapd*    #(aget % "which") keydowns) 
         keys        (ps/mapd*   keycode->key keycodes)
         known-keys  (ps/filter* (comp ps/promise identity) keys)
         actions     (ps/mapd*   key->action known-keys)
@@ -79,8 +79,9 @@
         highlights  (ps/filter*     (comp ps/promise highlight-actions) actions)
         hl-offsets  (ps/mapd*       highlight-action->offset highlights)
         highlighted (ps/reductions* hl-offsets (ps/fmap +) (ps/promise 0))
-        
-        ui          (ps/mapd* (partial -highlight! ui) highlighted)]
+        wrapped-hl  (ps/mapd*       #(mod % (count ui)) highlighted)
+
+        ui          (ps/mapd* (partial -highlight! ui) wrapped-hl)]
     ui))
 
 ; Bootstrap
