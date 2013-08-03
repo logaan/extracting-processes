@@ -119,9 +119,9 @@
 (defn set-output! [names]
     (jq/text (jq/$ "#output") names))
 
-(->>
-  (sources/callback->promise-stream on-keydown js/document)
-  (selection ex1-ui)
-  (ps/mapd* set-output!))
+(->> js/document  
+     (sources/callback->promise-stream on-keydown)
+     (selection ex1-ui)
+     (ps/mapd* set-output!))
 
 (jq/$ #(set-output! (render-ui ex1-ui first-state)))
