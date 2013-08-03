@@ -96,6 +96,7 @@
 (def first-state
   {:highlight 0 :selection nil})
 
+; Pure stream processing
 (defn keydowns->actions [keydowns]
   (->> keydowns
        (ps/mapd*   #(aget % "which")) 
@@ -103,24 +104,23 @@
        (ps/filter* (comp ps/promise identity))
        (ps/mapd*   key->action)))
 
-(defn actions->wrapped-hl [wrap-at actions]
+(defn actions->highlight-indexes [wrap-at actions]
   (->> actions
        (ps/filter*     (comp ps/promise highlight-actions))
        (ps/mapd*       highlight-action->offset)
        (ps/reductions* (ps/fmap +) (ps/promise 0))
        (ps/mapd*       #(mod % wrap-at))))
 
-(defn actions-&-wrapped-hl->s-n-hl-mem [actions wrapped-hl]
+(defn actions-&-highlight-indexes->ui-states [actions highlight-indexes]
   (->> (ps/filter* (comp ps/promise select-actions) actions)
-       (ps/concat* wrapped-hl)
+       (ps/concat* highlight-indexes)
        (ps/reductions* (ps/fmap remember-selection) (ps/promise first-state))))
 
-; Pure stream processing
 (defn selection [ui keydowns]
-  (let [actions    (keydowns->actions keydowns)
-        wrapped-hl (actions->wrapped-hl (count ui) actions)
-        s-n-hl-mem (actions-&-wrapped-hl->s-n-hl-mem actions wrapped-hl)]
-    (ps/mapd* (partial render-ui ui) s-n-hl-mem)))
+  (let [actions           (keydowns->actions keydowns)
+        highlight-indexes (actions->highlight-indexes (count ui) actions)
+        ui-states         (actions-&-highlight-indexes->ui-states actions highlight-indexes)]
+    (ps/mapd* (partial render-ui ui) ui-states)))
 
 ; Bootstrap
 (defn load-example [ui first-state output]
