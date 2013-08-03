@@ -1,0 +1,43 @@
+digraph {
+  node [shape=Mrecord]
+
+  keydowns [style=filled]
+  pre_element [style=filled]
+
+  keydowns -> keycodes [label="mapd*"]
+
+  subgraph cluster_selection {
+    label = "selection";
+
+    subgraph cluster_identify_actions {
+      label = "identify-actions";
+
+      keycodes -> keys [label="mapd*"]
+      keys -> known_keys [label="filter*"]
+      known_keys -> actions [label="mapd*"]
+    }
+
+    subgraph cluster_track_highlight {
+      label = "track-highlight"
+
+      actions -> highlight_actions [label="filter*"]
+      highlight_actions -> offsets [label="mapd*"]
+      offsets -> highlight_indexes [label="reductions*"]
+      highlight_indexes -> wrapping_highlight_indexes [label="mapd*"]
+    }
+
+    subgraph cluster_track_ui_states {
+      label = "track-ui-states"
+
+      actions -> select_actions [label="filter*"]
+      select_actions -> select_actions_and_highlight_indexes [label="concat*"]
+      wrapping_highlight_indexes -> select_actions_and_highlight_indexes [label="concat*"]
+      select_actions_and_highlight_indexes -> ui_states [label="reductions*"]
+    }
+
+    ui_states -> rendered_uis [label="mapd*"]
+  }
+
+  rendered_uis -> pre_element
+
+}

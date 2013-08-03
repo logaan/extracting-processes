@@ -124,8 +124,7 @@
   (jq/on target "keydown" f))
 
 (defn load-example [ui first-state output]
-  (->> output
-       (sources/callback->promise-stream on-keydown)
+  (->> (sources/callback->promise-stream on-keydown output)
        (selection ui)
        (ps/mapd* (partial jq/text output)))
 
