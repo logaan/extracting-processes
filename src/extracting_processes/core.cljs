@@ -35,25 +35,6 @@
   (-unselect! [list n]
     (set-select-column list n " ")))
 
-; Rendering UI (Side effects)
-(def ex0-ui
-  [ "   Alan Kay"
-   "   J.C.R. Licklider"
-   "   John McCarthy" ])
-
-(def ex1-ui
-  ["   Smalltalk"
-   "   Lisp"
-   "   Prolog"
-   "   ML"])
-
-; Utility
-(defn on-keydown [target f]
-  (jq/on target "keydown" f))
-
-(defn log-stream [stream]
-  (ps/mapd* (fn [v] (js/console.log (clj->js v)) v) stream))
-
 ; Pure data
 (def keycode->key
   {38 :up
@@ -79,6 +60,25 @@
   {:highlight/previous -1
    :highlight/next     +1})
 
+(def ex0-ui
+  [ "   Alan Kay"
+   "   J.C.R. Licklider"
+   "   John McCarthy" ])
+
+(def ex1-ui
+  ["   Smalltalk"
+   "   Lisp"
+   "   Prolog"
+   "   ML"])
+
+(def first-state
+  {:highlight 0 :selection nil})
+
+
+; Utility
+(defn log-stream [stream]
+  (ps/mapd* (fn [v] (js/console.log (clj->js v)) v) stream))
+
 (defn remember-selection
   "Stores current highlight as selection when select events occur. Otherwise
   updates remembered highlight."
@@ -92,9 +92,6 @@
     (-> ui
       (-select! selection)
       (-highlight! highlight))))
-
-(def first-state
-  {:highlight 0 :selection nil})
 
 ; Pure stream processing
 (defn identify-actions [keydowns]
@@ -123,6 +120,9 @@
     (ps/mapd* (partial render-ui ui) ui-states)))
 
 ; Bootstrap
+(defn on-keydown [target f]
+  (jq/on target "keydown" f))
+
 (defn load-example [ui first-state output]
   (->> output
        (sources/callback->promise-stream on-keydown)
