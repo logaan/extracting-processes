@@ -96,12 +96,16 @@
 (def first-state
   {:highlight 0 :selection nil})
 
+(defn keydowns->actions [keydowns]
+  (->> keydowns
+       (ps/mapd*   #(aget % "which")) 
+       (ps/mapd*   keycode->key)
+       (ps/filter* (comp ps/promise identity))
+       (ps/mapd*   key->action)))
+
 ; Pure stream processing
 (defn selection [ui keydowns]
-  (let [keycodes    (ps/mapd*    #(aget % "which") keydowns) 
-        keys        (ps/mapd*   keycode->key keycodes)
-        known-keys  (ps/filter* (comp ps/promise identity) keys)
-        actions     (ps/mapd*   key->action known-keys)
+  (let [actions    (keydowns->actions keydowns)
 
         highlights  (ps/filter*     (comp ps/promise highlight-actions) actions)
         hl-offsets  (ps/mapd*       highlight-action->offset highlights)
