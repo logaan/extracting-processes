@@ -4,23 +4,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/bootstrap.min.css" />
     <style>
+      body {
+        font-family: Georgia, 'Times New Roman', Times, serif;
+        font-size: 16px;
+        margin-bottom: 3em;
+      }
+
+      .byline {
+        font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+        font-size: 14px;
+      }
+
       .gist { font-size: 12px; }
-      .example { margin: 2em; }
+      .example, .gist { margin: 2em 0 2em 0; }
       .example pre { width: 50%; margin-left: auto; margin-right: auto; }
-      body { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 16px; }
     </style>
   </head>
   <body>
 
     <div class="container">
       <div class="row">
-        <div class="col-lg-8 col-lg-offset-2 col-sm-10 col-sm-offset-1">
+        <div class="col-lg-7 col-lg-offset-3 col-sm-10 col-sm-offset-1">
           <h1>
             A response to<br />
             <em>CSP is Responsive Design</em>
           </h1>
 
-          <p>
+          <p class="byline">
             <em>
               Written by <a href="https://twitter.com/logaan">Logan
               Campbell</a> on the 3rd of August 2013.
@@ -31,66 +41,115 @@
 
           <p>
             Recently <a href="https://twitter.com/swannodette">David Nolan</a>
-            proposed a novel three part design pattern in a post titled <a
-            href="http://swannodette.github.io/2013/07/31/extracting-processes/">
-            CSP is Responsive Design</a>. He demonstrates how a combination of
-            Event Stream Processing and <a
+            has
+            <a
+            href="http://swannodette.github.io/2013/07/31/extracting-processes/">written
+            about</a> how a combination of <strong>event stream
+            processing</strong> and <a
             href="http://en.wikipedia.org/wiki/Communicating_sequential_processes">
             CSP</a> can be used to <a
             href="http://www.infoq.com/presentations/Simple-Made-Easy">
-            simplify</a> UI programming. The three parts he proposes are:
+            simplify</a> UI programming.
+
+            He proposes a novel three part architecture consisting of:
           </p>
 
           <ol>
-            <li>Event stream processing</li>
-            <li>Event stream coordination</li>
-            <li>Interface representation</li>
+            <li><strong>Event stream processing</strong></li>
+            <li><strong>Event stream coordination</strong></li>
+            <li><strong>Interface representation</strong></li>
           </ol>
 
           <p>
-            This caught my attention as recently I've been thinking hard about
-            using event stream processing for UIs. However the concept of event
-            stream coordination was new to me. No strict definition is given,
-            rather he illustrates by way of examples.
+            I'm familiar with <strong>stream processing</strong> as I'm writing
+            <a href="https://github.com/logaan/promise-stream">a ClojureScript
+            library</a> that does just that. <strong>Interface
+            representation</strong> is a brilliant idea and I wish I'd thought
+            of it before. However <strong>stream coordination</strong> was new
+            to me and it is the main focus of this response.
+          </p>
+
+          <p>
+            Nolan gives no strict definition for <strong>stream
+            coordination</strong>, instead he illustrates with examples.
+            However I feel the examples are more complex, and less functional,
+            than raw <strong>stream processing</strong>. So I'm left feeling
+            that <strong>stream coordination</strong> should be avoided.
+          </p>
+
+          <hr />
+
+          <p>
+            I'll now go into more detail about the examples so if you haven't
+            read <a
+            href="http://swannodette.github.io/2013/07/31/extracting-processes/">the
+            post</a> yet, please do.
           </p>
 
           <p>
             The coordination functions <code>selector</code> and
             <code>highlighter</code> take and return <a
             href="https://github.com/clojure/core.async">core.async</a>
-            channels.
+            channels. Both functions consume events they recognise and pass
+            along the rest. This is great as it means these processes don't
+            care where the events come from or end up. Composing them extends
+            the functionality of the UI.
+          </p>
+
+          <p>But I have a few objections</p>
+
+          <ol>
+            <li>
+              Neither function is pure as they both take input other than their
+              arguments.
+            </li>
+            <li>
+              Filtering / Recognition of events and processing are handled in
+              the same function. It would be simpler to split this
+              responsabilities.
+            </li>
+            <li>
+              Explicit flow control and event emition are required. If HOFs
+              like those we use with sequences were used both of these things
+              could be eliminated.
+            </li>
+            <li>
+              By only passing along unknown events the functions must assume
+              all responsability for those events which they process. For another
+              function to handle these events it would need to know to pass them
+              onwards. And the composer would need to know to put these functions
+              last.
+            </li>
+          </ol>
+
+          <p>
+            I've implemented the highlight / selection example using raw
+            <strong>stream processing</strong>. <em>Click in the box to give it
+            focus then use up, down, j, k and enter to change highlight and
+            make selections.</em>
           </p>
 
           <div class="example">
-            <pre id="ex0" tabindex="1"></pre>
+            <pre id="ex1" tabindex="1"></pre>
           </div>
 
           <p>
-            This caught my attention as recently I've been thinking hard about
-            using event stream processing for UIs. However the concept of event
-            stream coordination was new to me. No strict definition is given,
-            rather he illustrates by way of examples.
+            You can see the full code <a
+              href="https://github.com/logaan/extracting-processes/blob/master/src/extracting_processes/core.cljs">on
+              github</a> but here is the meat of it:
           </p>
 
-          <script src="https://gist.github.com/logaan/3d372c5a76080e2a550f.js"></script>
+          <script src="https://gist.github.com/logaan/b54b89794de530b4876e.js"></script>
 
           <p>
-            This caught my attention as recently I've been thinking hard about
-            using event stream processing for UIs. However the concept of event
-            stream coordination was new to me. No strict definition is given,
-            rather he illustrates by way of examples.
+            <code>select</code> takes a raw stream of keydown events and
+            transforms them into a stream of rendered UIs. A UI is just a string we
+            throw in a pre tag. The UI needs two pieces of information to
+            render, the currently highlighted row and the currently selected
+            row (if any). 
           </p>
 
-          <div class="example">
-            <pre id="ex1" tabindex="2"></pre>
-          </div>
-
-          <p>
-            This caught my attention as recently I've been thinking hard about
-            using event stream processing for UIs. However the concept of event
-            stream coordination was new to me. No strict definition is given,
-            rather he illustrates by way of examples.
-          </p>
+          <p></p>
         </div>
       </div>
     </div>

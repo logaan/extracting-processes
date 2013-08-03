@@ -61,9 +61,9 @@
    :highlight/next     +1})
 
 (def ex0-ui
-  [ "   Alan Kay"
+  ["   Alan Kay"
    "   J.C.R. Licklider"
-   "   John McCarthy" ])
+   "   John McCarthy"])
 
 (def ex1-ui
   ["   Smalltalk"
@@ -93,6 +93,9 @@
       (-select! selection)
       (-highlight! highlight))))
 
+(defn on-keydown [target f]
+  (jq/on target "keydown" f))
+
 ; Pure stream processing
 (defn identify-actions [keydowns]
   (->> keydowns
@@ -119,10 +122,7 @@
         ui-states         (track-ui-states actions highlight-indexes)]
     (ps/mapd* (partial render-ui ui) ui-states)))
 
-; Bootstrap
-(defn on-keydown [target f]
-  (jq/on target "keydown" f))
-
+; Side effects
 (defn load-example [ui first-state output]
   (->> (sources/callback->promise-stream on-keydown output)
        (selection ui)
