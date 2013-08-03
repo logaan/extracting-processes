@@ -13,11 +13,13 @@
   (-select! [list n])
   (-unselect! [list n]))
 
+(defn set-select-column [list n val]
+  (if n
+    (update-in list [n] #(string/replace % #"^.." (str " " val)))
+    list))
+
 (defn set-highlight-column [list n val]
   (update-in list [n] #(string/replace % #"^." val)))
-
-(defn set-select-column [list n val]
-  (update-in list [n] #(string/replace % #"^.." (string/join " " val))))
 
 (extend-type cljs.core.PersistentVector
   IHighlightable
@@ -27,8 +29,10 @@
     (set-highlight-column list n " "))
   
   ISelectable
-  (-select! [list n] "so")
-  (-unselect! [list n] "desu"))
+  (-select! [list n]
+    (set-select-column list n "*"))
+  (-unselect! [list n]
+    (set-select-column list n " ")))
 
 ; Rendering UI (Side effects)
 (def ex0-ui
@@ -36,7 +40,13 @@
    "   J.C.R. Licklider"
    "   John McCarthy" ])
 
-(defn render-output! [names]
+(def ex1-ui
+  ["   Smalltalk"
+   "   Lisp"
+   "   Prolog"
+   "   ML"])
+
+(defn set-output! [names]
   (let [output (jq/$ "#output")]
     (jq/text output (string/join "\n" names))))
 
@@ -60,14 +70,32 @@
    :down  :highlight/next
    :j     :highlight/next
    :k     :highlight/previous
-   :enter :select-current})
+   :enter :select/current})
 
 (def highlight-actions
   #{:highlight/previous :highlight/next})
 
+(def select-actions
+  #{:select/current})
+
 (def highlight-action->offset
   {:highlight/previous -1
    :highlight/next     +1})
+
+(defn selected [sel-w-hl]
+  (ps/reductions*
+    sel-w-hl
+    (ps/fmap
+      (fn [{:keys [highlight selection] :as mem} event]
+        (if (= event :select/current)
+          (assoc mem :selection highlight)
+          (assoc mem :highlight event))))
+    (ps/promise {:highlight 0 :selection nil})))
+
+(defn render-ui [ui {:keys [highlight selection]}]
+  (-> ui
+      (-select! selection)
+      (-highlight! highlight)))
 
 ; Pure stream processing
 (defn selection [ui keydowns]
@@ -81,14 +109,18 @@
         highlighted (ps/reductions* hl-offsets (ps/fmap +) (ps/promise 0))
         wrapped-hl  (ps/mapd*       #(mod % (count ui)) highlighted)
 
-        ui          (ps/mapd* (partial -highlight! ui) wrapped-hl)]
+        selects     (ps/filter* (comp ps/promise select-actions) actions)
+        sel-w-hl    (ps/concat* selects wrapped-hl)
+        s-n-hl-mem  (selected sel-w-hl)
+
+        ui          (ps/mapd* (partial render-ui ui) s-n-hl-mem)]
     ui))
 
 ; Bootstrap
 (->>
   (sources/callback->promise-stream on-keydown js/document)
-  (selection ex0-ui)
-  (ps/mapd* render-output!))
+  (selection ex1-ui)
+  (ps/mapd* set-output!))
 
 (jq/$ (fn []
-        (render-output! (-highlight! ex0-ui 0))))
+        (set-output! (-highlight! ex1-ui 0))))
