@@ -1,6 +1,103 @@
-<script src="js/jquery.js"></script>
-<script src="js/main.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/bootstrap.min.css" />
+    <style>
+      .gist { font-size: 12px; }
+      .example { margin: 2em; }
+      .example pre { width: 50%; margin-left: auto; margin-right: auto; }
+      body { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 16px; }
+    </style>
+  </head>
+  <body>
 
-<pre id="ex0" tabindex="1"></pre>
-<pre id="ex1" tabindex="2"></pre>
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-8 col-lg-offset-2 col-sm-10 col-sm-offset-1">
+          <h1>
+            A response to<br />
+            <em>CSP is Responsive Design</em>
+          </h1>
 
+          <p>
+            <em>
+              Written by <a href="https://twitter.com/logaan">Logan
+              Campbell</a> on the 3rd of August 2013.
+            </em>
+          </p>
+
+          <hr />
+
+          <p>
+            Recently <a href="https://twitter.com/swannodette">David Nolan</a>
+            proposed a novel three part design pattern in a post titled <a
+            href="http://swannodette.github.io/2013/07/31/extracting-processes/">
+            CSP is Responsive Design</a>. He demonstrates how a combination of
+            Event Stream Processing and <a
+            href="http://en.wikipedia.org/wiki/Communicating_sequential_processes">
+            CSP</a> can be used to <a
+            href="http://www.infoq.com/presentations/Simple-Made-Easy">
+            simplify</a> UI programming. The three parts he proposes are:
+          </p>
+
+          <ol>
+            <li>Event stream processing</li>
+            <li>Event stream coordination</li>
+            <li>Interface representation</li>
+          </ol>
+
+          <p>
+            This caught my attention as recently I've been thinking hard about
+            using event stream processing for UIs. However the concept of event
+            stream coordination was new to me. No strict definition is given,
+            rather he illustrates by way of examples.
+          </p>
+
+          <p>
+            The coordination functions <code>selector</code> and
+            <code>highlighter</code> take and return <a
+            href="https://github.com/clojure/core.async">core.async</a>
+            channels.
+          </p>
+
+          <div class="example">
+            <pre id="ex0" tabindex="1"></pre>
+          </div>
+
+          <p>
+            This caught my attention as recently I've been thinking hard about
+            using event stream processing for UIs. However the concept of event
+            stream coordination was new to me. No strict definition is given,
+            rather he illustrates by way of examples.
+          </p>
+
+          <script src="https://gist.github.com/logaan/3d372c5a76080e2a550f.js"></script>
+
+          <p>
+            This caught my attention as recently I've been thinking hard about
+            using event stream processing for UIs. However the concept of event
+            stream coordination was new to me. No strict definition is given,
+            rather he illustrates by way of examples.
+          </p>
+
+          <div class="example">
+            <pre id="ex1" tabindex="2"></pre>
+          </div>
+
+          <p>
+            This caught my attention as recently I've been thinking hard about
+            using event stream processing for UIs. However the concept of event
+            stream coordination was new to me. No strict definition is given,
+            rather he illustrates by way of examples.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/jquery.js"></script>
+    <script src="js/main.js"></script>
+
+  </body>
+</html>
