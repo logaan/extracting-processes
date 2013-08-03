@@ -45,7 +45,7 @@
   (aset target "onkeydown" f))
 
 (defn log-stream [stream]
-  (ps/mapd* #(do (js/console.log (clj->js %)) %) stream))
+  (ps/mapd* (fn [v] (js/console.log (clj->js v)) v) stream))
 
 ; Pure data
 (def keycode->key
@@ -90,4 +90,4 @@
   (ps/mapd* render-output!))
 
 (jq/$ (fn []
-        (render-output! ex0-ui)))
+        (render-output! (-highlight! ex0-ui 0))))
