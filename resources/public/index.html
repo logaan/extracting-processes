@@ -142,14 +142,25 @@
           <script src="https://gist.github.com/logaan/b54b89794de530b4876e.js"></script>
 
           <p>
-            <code>select</code> takes a raw stream of keydown events and
-            transforms them into a stream of rendered UIs. A UI is just a string we
-            throw in a pre tag. The UI needs two pieces of information to
-            render, the currently highlighted row and the currently selected
-            row (if any). 
+            <code>load-example</code> is what grabs events from the document
+            and puts renders the UI out. It contains the bare minimum amount of
+            procedural code.
           </p>
 
-          <p></p>
+          <p>
+            <code>selection</code> takes a raw stream of keydown events and
+            transforms them into a stream of rendered UIs. A UI is just a
+            string we throw in a pre tag. It's all purely functional,
+            conceptually just like we had a normal clojure sequence.
+          </p>
+
+          <p>
+            Transforming raw events into domain specific events is a critical
+            step in de-coupling everything. This is
+            <code>identify-actions</code> job. It's interesting to note that
+            mupltiple keys can generate the same action. Both <em>down</em> and
+            <em>j</em> will map to <code>:highlight/next</code>.
+          </p>
         </div>
       </div>
     </div>
