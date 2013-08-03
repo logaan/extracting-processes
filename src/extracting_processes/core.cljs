@@ -97,29 +97,29 @@
   {:highlight 0 :selection nil})
 
 ; Pure stream processing
-(defn keydowns->actions [keydowns]
+(defn identify-actions [keydowns]
   (->> keydowns
        (ps/mapd*   #(aget % "which")) 
        (ps/mapd*   keycode->key)
        (ps/filter* (comp ps/promise identity))
        (ps/mapd*   key->action)))
 
-(defn actions->highlight-indexes [wrap-at actions]
+(defn track-highlight [wrap-at actions]
   (->> actions
        (ps/filter*     (comp ps/promise highlight-actions))
        (ps/mapd*       highlight-action->offset)
        (ps/reductions* (ps/fmap +) (ps/promise 0))
        (ps/mapd*       #(mod % wrap-at))))
 
-(defn actions-&-highlight-indexes->ui-states [actions highlight-indexes]
+(defn track-ui-states [actions highlight-indexes]
   (->> (ps/filter* (comp ps/promise select-actions) actions)
        (ps/concat* highlight-indexes)
        (ps/reductions* (ps/fmap remember-selection) (ps/promise first-state))))
 
 (defn selection [ui keydowns]
-  (let [actions           (keydowns->actions keydowns)
-        highlight-indexes (actions->highlight-indexes (count ui) actions)
-        ui-states         (actions-&-highlight-indexes->ui-states actions highlight-indexes)]
+  (let [actions           (identify-actions keydowns)
+        highlight-indexes (track-highlight (count ui) actions)
+        ui-states         (track-ui-states actions highlight-indexes)]
     (ps/mapd* (partial render-ui ui) ui-states)))
 
 ; Bootstrap
