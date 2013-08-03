@@ -1,10 +1,9 @@
 # extracting-processes
 
-A Clojure library designed to ... well, that part is up to you.
+[CSP is Responsive
+Design](http://swannodette.github.io/2013/07/31/extracting-processes) but with
+[Promise Streams](https://github.com/logaan/promise-stream).
 
-## Usage
-
-FIXME
 
 ## License
 
