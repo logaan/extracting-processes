@@ -6,8 +6,8 @@
 
 ; Protocols
 (defprotocol IHighlightable
-  (-highlight!  [list n])
-  (-unhighlight!  [list n]))
+  (-highlight! [list n])
+  (-unhighlight! [list n]))
 
 (defprotocol ISelectable
   (-select! [list n])
@@ -103,20 +103,23 @@
        (ps/filter* (comp ps/promise identity))
        (ps/mapd*   key->action)))
 
+(defn actions->wrapped-hl [wrap-at actions]
+  (->> actions
+       (ps/filter*     (comp ps/promise highlight-actions))
+       (ps/mapd*       highlight-action->offset)
+       (ps/reductions* (ps/fmap +) (ps/promise 0))
+       (ps/mapd*       #(mod % wrap-at))))
+
+(defn actions-&-wrapped-hl->s-n-hl-mem [actions wrapped-hl]
+  (->> (ps/filter* (comp ps/promise select-actions) actions)
+       (ps/concat* wrapped-hl)
+       (ps/reductions* (ps/fmap remember-selection) (ps/promise first-state))))
+
 ; Pure stream processing
 (defn selection [ui keydowns]
   (let [actions    (keydowns->actions keydowns)
-
-        highlights  (ps/filter*     (comp ps/promise highlight-actions) actions)
-        hl-offsets  (ps/mapd*       highlight-action->offset highlights)
-        highlighted (ps/reductions* hl-offsets (ps/fmap +) (ps/promise 0))
-        wrapped-hl  (ps/mapd*       #(mod % (count ui)) highlighted)
-
-        selects     (ps/filter* (comp ps/promise select-actions) actions)
-        sel-w-hl    (ps/concat* selects wrapped-hl)
-        s-n-hl-mem  (ps/reductions* sel-w-hl
-                                    (ps/fmap remember-selection)
-                                    (ps/promise first-state))]
+        wrapped-hl (actions->wrapped-hl (count ui) actions)
+        s-n-hl-mem (actions-&-wrapped-hl->s-n-hl-mem actions wrapped-hl)]
     (ps/mapd* (partial render-ui ui) s-n-hl-mem)))
 
 ; Bootstrap
