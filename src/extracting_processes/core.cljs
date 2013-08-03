@@ -49,7 +49,7 @@
 
 ; Utility
 (defn on-keydown [target f]
-  (aset target "onkeydown" f))
+  (jq/on target "keydown" f))
 
 (defn log-stream [stream]
   (ps/mapd* (fn [v] (js/console.log (clj->js v)) v) stream))
@@ -116,12 +116,14 @@
     (ps/mapd* (partial render-ui ui) s-n-hl-mem)))
 
 ; Bootstrap
-(defn set-output! [names]
-    (jq/text (jq/$ "#output") names))
+(defn load-example [ui first-state output]
+  (->> output
+       (sources/callback->promise-stream on-keydown)
+       (selection ui)
+       (ps/mapd* (partial jq/text output)))
 
-(->> js/document  
-     (sources/callback->promise-stream on-keydown)
-     (selection ex1-ui)
-     (ps/mapd* set-output!))
+    (jq/text output (render-ui ui first-state)))
 
-(jq/$ #(set-output! (render-ui ex1-ui first-state)))
+(jq/$ #(load-example ex0-ui first-state (jq/$ "#ex0")))
+(jq/$ #(load-example ex1-ui first-state (jq/$ "#ex1")))
+
