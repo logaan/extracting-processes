@@ -1,4 +1,6 @@
 (ns extracting-processes.core
+  (:use [promise_stream.pstream :only [mapd* filter* concat* reductions*
+                                       promise fmap]])
   (:require [clojure.string :as string]
             [promise_stream.pstream :as ps]  
             [promise_stream.sources :as sources]
@@ -77,7 +79,7 @@
 
 ; Utility
 (defn log-stream [stream]
-  (ps/mapd* (fn [v] (js/console.log (clj->js v)) v) stream))
+  (mapd* (fn [v] (js/console.log (clj->js v)) v) stream))
 
 (defn remember-selection
   "Stores current highlight as selection when select events occur. Otherwise
@@ -99,34 +101,34 @@
 ; Pure stream processing
 (defn identify-actions [keydowns]
   (->> keydowns
-       (ps/mapd*   #(aget % "which")) 
-       (ps/mapd*   keycode->key)
-       (ps/filter* (comp ps/promise identity))
-       (ps/mapd*   key->action)))
+       (mapd*   #(aget % "which")) 
+       (mapd*   keycode->key)
+       (filter* (comp promise identity))
+       (mapd*   key->action)))
 
 (defn track-highlight [wrap-at actions]
   (->> actions
-       (ps/filter*     (comp ps/promise highlight-actions))
-       (ps/mapd*       highlight-action->offset)
-       (ps/reductions* (ps/fmap +) (ps/promise 0))
-       (ps/mapd*       #(mod % wrap-at))))
+       (filter*     (comp promise highlight-actions))
+       (mapd*       highlight-action->offset)
+       (reductions* (fmap +) (promise 0))
+       (mapd*       #(mod % wrap-at))))
 
 (defn track-ui-states [actions highlight-indexes]
-  (->> (ps/filter* (comp ps/promise select-actions) actions)
-       (ps/concat* highlight-indexes)
-       (ps/reductions* (ps/fmap remember-selection) (ps/promise first-state))))
+  (->> (filter* (comp promise select-actions) actions)
+       (concat* highlight-indexes)
+       (reductions* (fmap remember-selection) (promise first-state))))
 
 (defn selection [ui keydowns]
   (let [actions           (identify-actions keydowns)
         highlight-indexes (track-highlight (count ui) actions)
         ui-states         (track-ui-states actions highlight-indexes)]
-    (ps/mapd* (partial render-ui ui) ui-states)))
+    (mapd* (partial render-ui ui) ui-states)))
 
 ; Side effects
 (defn load-example [ui first-state output]
   (->> (sources/callback->promise-stream on-keydown output)
        (selection ui)
-       (ps/mapd* (partial jq/text output)))
+       (mapd* (partial jq/text output)))
 
     (jq/text output (render-ui ui first-state)))
 
