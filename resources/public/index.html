@@ -49,9 +49,9 @@
             about</a> how a combination of <strong>event stream
             processing</strong> and <a
             href="http://en.wikipedia.org/wiki/Communicating_sequential_processes">
-            Communicating Sequencial processes</a> can be used to <a
+            communicating sequencial processes</a> can be used to <a
             href="http://www.infoq.com/presentations/Simple-Made-Easy">
-            simplify</a> UI programming.
+            simplify</a> user interface programming.
 
             He proposes a novel three part architecture consisting of:
           </p>
@@ -76,47 +76,44 @@
 
           <p>
             Nolan gives no strict definition for <strong>stream
-            coordination</strong>, instead he illustrates with examples.
-            It is possible that I've missunderstood the concept and that I'm
-            mistaking shortcomings of toy examples for shortcomings of the
-            concept.
-            However I feel the examples are more complex, and less functional,
-            than raw <strong>stream processing</strong>. So I'm left feeling
-            that <strong>stream coordination</strong> should be avoided.
+            coordination</strong>, instead he illustrates with examples. To me
+            the examples look more complex, and less functional, than raw
+            <strong>stream processing</strong>. So I'm left feeling that
+            <strong>stream coordination</strong> should be avoided.
           </p>
 
           <p>
             The coordination functions <code>selector</code> and
             <code>highlighter</code> take and return <a
             href="https://github.com/clojure/core.async">core.async</a>
-            channels. This is great as it means these processes don't
-            care where the events come from or end up. Composing them extends
-            the functionality of the UI. But I feel there are some drawbacks to
-            this approach:
+            channels. This is great as it means these processes don't care
+            where the events come from or end up. Composing them extends the
+            functionality of the user interface. But there are some drawbacks
+            to this approach:
           </p>
 
           <ol>
             <li>
-              Neither function is pure. They pull values out of the channel.
+              Neither function is pure. They read values out of the channel.
               This both mutates the chanel (removing the value) and means we
-              can not determine the return values purely from function
+              can not determine the return values purely from the function
               arguments.
             </li>
             <li>
-              Recognition of events and processing are handled in the same
+              Recognition, and processing of events are handled in the same
               function. A simpler design would split these responsabilities.
             </li>
             <li>
               Explicit flow control (<code>loop</code>/<code>recur</code>) and
-              event emition (<code>&gt;!</code>) are required. If <a
-              href="http://en.wikipedia.org/wiki/Higher_order_functions">higher-order
-              functions</a> were used both of these things could be eliminated.
+              event emition (<code>&gt;!</code>) are required. <a
+              href="http://en.wikipedia.org/wiki/Higher_order_functions">Higher-order
+              functions</a> could eliminate both of these chores.
             </li>
             <li>
-              By only passing along unknown events the functions must assume
-              all responsability for those events which they process. This is
-              less flexible than allowing for multiple consumers of each
-              channel.
+              The functions emit only unknown events. This means they must
+              assume all responsability for those events which they process.
+              This is less flexible than allowing for multiple consumers of
+              each channel.
             </li>
           </ol>
 
@@ -135,15 +132,16 @@
 
           <p>
             You can see the full code <a
-              href="https://github.com/logaan/extracting-processes/blob/master/src/extracting_processes/core.cljs">on
-              github</a> but I've included the meat of it here. It's written
+            href="https://github.com/logaan/extracting-processes/blob/master/src/extracting_processes/core.cljs">on
+            github</a> but I've included the meat of it here. It's written
             using <a
-              href="https://github.com/logaan/promise-stream">promise-streams</a>
+            href="https://github.com/logaan/promise-stream">promise-streams</a>
             which aim to provide event streams in an idiomatic Clojure way.
-            They're implemented as promises wrapped around <a
-              href="http://en.wikipedia.org/wiki/Cons">cons cells</a>, and
-            provide asynchronous version of the sequence functions you'd
-            expect.
+            They're implemented as <a
+            href="http://en.wikipedia.org/wiki/Futures_and_promises">promises</a>
+            wrapped around <a href="http://en.wikipedia.org/wiki/Cons">cons
+            cells</a>, and provide asynchronous versions of Clojure's sequence
+            functions.
           </p>
 
           <script src="https://gist.github.com/logaan/aa4fd19f1f2e34cd0171.js"></script>
@@ -151,14 +149,14 @@
           <p>
             <em>
               I've created <a href="data-flow.svg">a graph</a> of the data flow
-              through the system. It may give you, at a glance, a feel for how
-              everything ties together.
+              through the system. It labels the kinds of events at each step
+              and may help you get a feel for how everything ties together.
             </em>
           </p>
 
           <p>
-            I feel that this <strong>stream processing</strong> code addresses
-            my concerns with the <strong>stream coordination</strong> code.
+            This <strong>stream processing</strong> code addresses my concerns
+            with the <strong>stream coordination</strong> code.
           </p>
 
           <ol>
@@ -166,7 +164,7 @@
               <code>load-example</code> grabs events from the document, feeds
               them through the purely functional code, and finally dumps the
               rendered ui into the dom. This is what I've come to expect from
-              good clojure code, a thin crispy shell around a delicious
+              Clojure code; a thin procedural shell around a delicious
               functional core.
             </li>
             <li>
@@ -177,14 +175,15 @@
             </li>
             <li>
               The functions are just passing the data through a sequence of
-              super simple processing steps. The functions passed into the HOFs
-              need not care that they're dealing with steams of events.
+              super simple processing steps. The functions passed into the
+              higher-order functions need not care that they're dealing with
+              steams of events.
             </li>
             <li>
               Streams can be re-used without their needing to explicitly allow
-              it. On line 22 you can see <code>selection</code> passing the
-              <code>actions</code> stream to both <code>track-highlight</code>
-              and <code>track-ui-states</code>.
+              it. <code>selection</code> passes the <code>actions</code> stream
+              to both <code>track-highlight</code> and
+              <code>track-ui-states</code>.
             </li>
           </ol>
 
