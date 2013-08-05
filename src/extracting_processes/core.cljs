@@ -1,6 +1,7 @@
 (ns extracting-processes.core
   (:use [promise_stream.pstream :only [mapd* filter* concat* reductions*
-                                       promise fmap]])
+                                       promise fmap]]
+        [jayq.core :only [$ on]])
   (:require [clojure.string :as string]
             [promise_stream.pstream :as ps]  
             [promise_stream.sources :as sources]
@@ -95,43 +96,59 @@
       (-select! selection)
       (-highlight! highlight))))
 
-(defn on-keydown [target f]
-  (jq/on target "keydown" f))
-
 ; Pure stream processing
-(defn identify-actions [keydowns]
+(defn identify-key-actions [keydowns]
   (->> keydowns
        (mapd*   #(aget % "which")) 
        (mapd*   keycode->key)
        (filter* (comp promise identity))
        (mapd*   key->action)))
 
-(defn track-highlight [wrap-at actions]
-  (->> actions
-       (filter*     (comp promise highlight-actions))
-       (mapd*       highlight-action->offset)
-       (reductions* (fmap +) (promise 0))
-       (mapd*       #(mod % wrap-at))))
-
-(defn track-ui-states [actions highlight-indexes]
-  (->> (filter* (comp promise select-actions) actions)
-       (concat* highlight-indexes)
-       (reductions* (fmap remember-selection) (promise first-state))))
-
-(defn selection [ui keydowns]
-  (let [actions           (identify-actions keydowns)
-        highlight-indexes (track-highlight (count ui) actions)
-        ui-states         (track-ui-states actions highlight-indexes)]
-    (mapd* (partial render-ui ui) ui-states)))
+(defn mouseover->highlight [mouseover]
+  (.index (jq/$ (.-target mouseover))))
 
 ; Side effects
-(defn load-example [ui first-state output]
-  (->> (sources/callback->promise-stream on-keydown output)
-       (selection ui)
-       (mapd* (partial jq/text output)))
+(defn load-example [ui]
+  (let [wrap-at                    (count ui)
+        
+        ; Raw events
+        keydowns                   (sources/callback->promise-stream on ($ "div") "keydown")
+        mouseovers                 (sources/callback->promise-stream on ($ "li")  "mouseover")
+        mouseouts                  (sources/callback->promise-stream on ($ "ul")  "mouseout")
+        clicks                     (sources/callback->promise-stream on ($ "li")  "click")
 
-    (jq/text output (render-ui ui first-state)))
+        ; Identified events
+        key-actions                (identify-key-actions keydowns)
 
-(jq/$ #(load-example ex0-ui first-state (jq/$ "#ex0")))
-(jq/$ #(load-example ex1-ui first-state (jq/$ "#ex1")))
+        key-selects                (filter* (comp promise select-actions) key-actions)
+        mouse-selects              (mapd* (constantly :select) clicks)
+        selects                    (concat* key-selects mouse-selects)
 
+        highlight-moves            (filter* (comp promise highlight-actions) key-actions)
+
+        clears                     (mapd* (constantly :clear) mouseouts) 
+
+        ; Highlight modifyers
+        offsets-ammounts           (mapd* highlight-action->offset highlight-moves)
+        highlight-index-offsets    (mapd* #(partial + %) offsets-ammounts)
+
+        mouse-highlight-indexes    (mapd* mouseover->highlight mouseovers)
+        highlight-index-resets     (mapd* constantly mouse-highlight-indexes)
+
+        ; Highlight index
+        highlight-modifyers        (concat* highlight-index-offsets highlight-index-resets)
+        raw-highlight-indexes      (reductions* (fmap apply) (promise 0) highlight-modifyers)
+        wrapped-highlight-indexes  (mapd* #(mod % wrap-at) raw-highlight-indexes)
+
+        ; Highlights and selects
+        highlights-and-selects     (concat* wrapped-highlight-indexes selects)
+
+        ; UI states
+        ui-states                  (reductions* (fmap remember-selection) (promise first-state) highlights-and-selects)
+
+        ; Rendered UIs
+        uis                        (mapd* (partial render-ui ui) ui-states)
+        ]
+    ))
+
+(load-example ex0-ui)
