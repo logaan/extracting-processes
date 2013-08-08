@@ -60,8 +60,8 @@
   #{:select/current})
 
 (def highlight-action->offset
-  {:highlight/previous -1
-   :highlight/next     +1})
+  {:highlight/previous dec
+   :highlight/next     inc})
 
 (def ex0-ui
   ["   Alan Kay"
@@ -126,13 +126,12 @@
 
         highlight-moves            (filter* (comp promise highlight-actions) key-actions)
 
+        mouse-highlight-indexes    (mapd* mouseover->highlight mouseovers)
+
         clears                     (mapd* (constantly :clear) mouseouts) 
 
         ; Highlight modifyers
-        offsets-ammounts           (mapd* highlight-action->offset highlight-moves)
-        highlight-index-offsets    (mapd* #(partial + %) offsets-ammounts)
-
-        mouse-highlight-indexes    (mapd* mouseover->highlight mouseovers)
+        highlight-index-offsets    (mapd* highlight-action->offset highlight-moves)
         highlight-index-resets     (mapd* constantly mouse-highlight-indexes)
 
         ; Highlight index

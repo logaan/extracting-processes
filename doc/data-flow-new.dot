@@ -6,51 +6,26 @@ digraph {
     mouseovers
     mouseouts
     clicks
-  }
-
-  subgraph cluster_identified_events {
-    label = "Domain Events";
 
     key_actions
     key_selects
     mouse_selects
-    selects
-    highlight_moves
     clears
-  }
-
-  subgraph cluster_highlight_modifyers {
-    label = "Hightlight Modifyers";
-
-    offsets_ammounts
-    highlight_index_offsets
+    highlight_moves
     mouse_highlight_indexes
+    selects
+
+    highlight_index_offsets
     highlight_index_resets
+    highlight_modifyers
   }
 
-  subgraph cluster_highlight_index {
-    label = "Highlight Index";
-
-    highlight_modifyers
+  subgraph cluster_identified_events {
+    label = "Business Logic";
     raw_highlight_indexes
     wrapped_highlight_indexes
-  }
-
-  subgraph cluster_highlights_and_selects {
-    label = "Highlights and Selects";
-
     highlights_and_selects
-  }
-
-  subgraph cluster_ui_states {
-    label = "UI States";
-
     ui_states
-  }
-
-  subgraph cluster_rendered_uis {
-    label = "UIs";
-
     uis
   }
 
@@ -67,8 +42,7 @@ digraph {
   key_actions               -> highlight_moves [label="filter*"]
   mouseouts                 -> clears [label="mapd*"]
 
-  highlight_moves           -> offsets_ammounts [label="mapd*"]
-  offsets_ammounts          -> highlight_index_offsets [label="mapd*"]
+  highlight_moves           -> highlight_index_offsets [label="mapd*"] 
   mouseovers                -> mouse_highlight_indexes [label="mapd*"]
   mouse_highlight_indexes   -> highlight_index_resets [label="mapd*"]
 
