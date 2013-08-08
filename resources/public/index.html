@@ -50,7 +50,7 @@
             about</a> how a combination of <strong>event stream
             processing</strong> and <a
             href="http://en.wikipedia.org/wiki/Communicating_sequential_processes">
-            communicating sequencial processes</a> can be used to <a
+            communicating sequential processes</a> can be used to <a
             href="http://www.infoq.com/presentations/Simple-Made-Easy">
             simplify</a> user interface programming.
 
@@ -96,23 +96,23 @@
           <ol>
             <li>
               Neither function is pure. They read values out of the channel.
-              This both mutates the chanel (removing the value) and means we
+              This both mutates the channel (removing the value) and means we
               can not determine the return values purely from the function
               arguments.
             </li>
             <li>
               Recognition, and processing of events are handled in the same
-              function. A simpler design would split these responsabilities.
+              function. A simpler design would split these responsibilities.
             </li>
             <li>
               Explicit flow control (<code>loop</code>/<code>recur</code>) and
-              event emition (<code>&gt;!</code>) are required. <a
+              event emission (<code>&gt;!</code>) are required. <a
               href="http://en.wikipedia.org/wiki/Higher_order_functions">Higher-order
               functions</a> could eliminate both of these chores.
             </li>
             <li>
               The functions emit only unknown events. This means they must
-              assume all responsability for those events which they process.
+              assume all responsibility for those events which they process.
               This is less flexible than allowing for multiple consumers of
               each channel.
             </li>
@@ -191,7 +191,7 @@
           <p>
             My code only takes the first two steps from Nolen's post. It's
             possible that there are complications introduced from the mouse
-            interactions that haven't occured to me. But I've previously
+            interactions that haven't occurred to me. But I've previously
             written <a
               href="https://github.com/logaan/promise-stream/blob/master/test/promise_stream/quick_search_example.cljs">the
               other half of an autocompleter</a> and I think I see how a full
