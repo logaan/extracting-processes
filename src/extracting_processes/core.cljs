@@ -1,7 +1,7 @@
 (ns extracting-processes.core
   (:use [promise_stream.pstream :only [mapd* filter* concat* reductions*
                                        promise fmap]]
-        [jayq.core :only [$ on]])
+        [jayq.core :only [$ on text]])
   (:require [clojure.string :as string]
             [promise_stream.pstream :as ps]  
             [promise_stream.sources :as sources]
@@ -146,9 +146,8 @@
         ui-states                  (reductions* (fmap remember-selection) (promise first-state) highlights-and-selects)
 
         ; Rendered UIs
-        uis                        (mapd* (partial render-ui ui) ui-states)
+        uis                        (mapd* (partial render-ui ui) ui-states)]
+    uis))
 
-        ]
-    (log-stream uis)))
-
-(load-example ex0-ui)
+(mapd* #(text ($ "#ex0") %) (load-example ex0-ui))
+(mapd* #(text ($ "#ex1") %) (load-example ex1-ui))

@@ -1,32 +1,53 @@
 digraph {
   subgraph cluster_raw_events {
-    label = "Raw Events";
+    label = "Raw Events"
 
-    keydowns
+    dom
     mouseovers
+    keydowns
     mouseouts
     clicks
-
-    key_actions
-    key_selects
-    mouse_selects
-    clears
-    highlight_moves
-    mouse_highlight_indexes
-    selects
-
-    highlight_index_offsets
-    highlight_index_resets
-    highlight_modifyers
   }
 
-  subgraph cluster_identified_events {
-    label = "Business Logic";
+  subgraph cluster_highlight_index {
+    label = "Highlight index"
+
     raw_highlight_indexes
     wrapped_highlight_indexes
-    highlights_and_selects
-    ui_states
-    uis
+  }
+
+  subgraph cluster_glue {
+    label = "Glue"
+
+    key_actions
+    mouse_highlight_indexes
+    key_selects
+    mouse_selects
+    selects
+    highlight_moves
+  }
+
+  subgraph cluster_highlight_actions {
+    label = "Highlight actions"
+
+    highlight_index_resets
+    highlight_index_offsets
+    highlight_modifyers
+    clears
+  }
+
+  subgraph cluster_highlight_rendering {
+    label = "Highlight Rendering"
+
+    highlight_ui_states
+    highlight_uis
+  }
+
+  subgraph cluster_select_rendering {
+    label = "Select Rendering"
+
+    select_ui_states
+    select_uis
   }
 
   dom                       -> keydowns
@@ -46,6 +67,7 @@ digraph {
   mouseovers                -> mouse_highlight_indexes [label="mapd*"]
   mouse_highlight_indexes   -> highlight_index_resets [label="mapd*"]
 
+  clears                    -> highlight_modifyers [label="concat*"]
   highlight_index_offsets   -> highlight_modifyers [label="concat*"]
   highlight_index_resets    -> highlight_modifyers [label="concat*"]
   highlight_modifyers       -> raw_highlight_indexes [label="reductions*"]
@@ -54,7 +76,9 @@ digraph {
   wrapped_highlight_indexes -> highlights_and_selects [label="concat*"]
   selects                   -> highlights_and_selects [label="concat*"]
 
-  highlights_and_selects    -> ui_states [label="reductions*"]
+  highlights_and_selects    -> highlight_ui_states [label="reductions*"]
+  highlight_ui_states       -> highlight_uis [label="mapd*"]
 
-  ui_states                 -> uis [label="mapd*"]
+  highlights_and_selects    -> select_ui_states [label="reductions*"]
+  select_ui_states          -> select_uis [label="mapd*"]
 }
