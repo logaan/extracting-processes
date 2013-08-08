@@ -137,7 +137,7 @@
 
         ; Highlight index
         highlight-modifyers        (concat* highlight-index-offsets highlight-index-resets)
-        raw-highlight-indexes      (reductions* (fmap apply) (promise 0) highlight-modifyers)
+        raw-highlight-indexes      (reductions* (fmap (fn [v f] (f v))) (promise 0) highlight-modifyers)
         wrapped-highlight-indexes  (mapd* #(mod % wrap-at) raw-highlight-indexes)
 
         ; Highlights and selects
@@ -148,7 +148,8 @@
 
         ; Rendered UIs
         uis                        (mapd* (partial render-ui ui) ui-states)
+
         ]
-    ))
+    (log-stream uis)))
 
 (load-example ex0-ui)

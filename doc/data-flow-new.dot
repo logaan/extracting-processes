@@ -1,0 +1,86 @@
+digraph {
+  subgraph cluster_raw_events {
+    label = "Raw Events";
+
+    keydowns
+    mouseovers
+    mouseouts
+    clicks
+  }
+
+  subgraph cluster_identified_events {
+    label = "Domain Events";
+
+    key_actions
+    key_selects
+    mouse_selects
+    selects
+    highlight_moves
+    clears
+  }
+
+  subgraph cluster_highlight_modifyers {
+    label = "Hightlight Modifyers";
+
+    offsets_ammounts
+    highlight_index_offsets
+    mouse_highlight_indexes
+    highlight_index_resets
+  }
+
+  subgraph cluster_highlight_index {
+    label = "Highlight Index";
+
+    highlight_modifyers
+    raw_highlight_indexes
+    wrapped_highlight_indexes
+  }
+
+  subgraph cluster_highlights_and_selects {
+    label = "Highlights and Selects";
+
+    highlights_and_selects
+  }
+
+  subgraph cluster_ui_states {
+    label = "UI States";
+
+    ui_states
+  }
+
+  subgraph cluster_rendered_uis {
+    label = "UIs";
+
+    uis
+  }
+
+  dom                       -> keydowns
+  dom                       -> mouseovers
+  dom                       -> mouseouts
+  dom                       -> clicks
+
+  keydowns                  -> key_actions [label="identify-key-actions"]
+  key_actions               -> key_selects [label="filter*"]
+  clicks                    -> mouse_selects [label="mapd*"]
+  key_selects               -> selects [label="concat*"]
+  mouse_selects             -> selects [label="concat*"]
+  key_actions               -> highlight_moves [label="filter*"]
+  mouseouts                 -> clears [label="mapd*"]
+
+  highlight_moves           -> offsets_ammounts [label="mapd*"]
+  offsets_ammounts          -> highlight_index_offsets [label="mapd*"]
+  mouseovers                -> mouse_highlight_indexes [label="mapd*"]
+  mouse_highlight_indexes   -> highlight_index_resets [label="mapd*"]
+
+  highlight_index_offsets   -> highlight_modifyers [label="concat*"]
+  highlight_index_resets    -> highlight_modifyers [label="concat*"]
+  highlight_modifyers       -> raw_highlight_indexes [label="reductions*"]
+  raw_highlight_indexes     -> wrapped_highlight_indexes [label="mapd*"]
+
+  wrapped_highlight_indexes -> highlights_and_selects [label="concat*"]
+  selects                   -> highlights_and_selects [label="concat*"]
+
+  highlights_and_selects    -> ui_states [label="reductions*"]
+
+  ui_states                 -> uis [label="mapd*"]
+}
