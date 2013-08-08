@@ -151,3 +151,6 @@
 
 (mapd* #(text ($ "#ex0") %) (load-example ex0-ui))
 (mapd* #(text ($ "#ex1") %) (load-example ex1-ui))
+
+(text ($ "#ex0") (string/join "\n" ex0-ui))
+(text ($ "#ex1") (string/join "\n" ex1-ui))
