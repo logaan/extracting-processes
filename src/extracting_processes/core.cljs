@@ -7,6 +7,12 @@
             [promise_stream.sources :as sources]
             [jayq.core :as jq]))
 
+(defn log [clj-value]
+  (js/console.log (clj->js clj-value)))
+
+(defn log-stream [stream]
+  (mapd* log stream))
+
 ; Protocols
 (defprotocol IHighlightable
   (-highlight! [list n])
@@ -25,18 +31,48 @@
 (defn set-highlight-column [list n val]
   (update-in list [n] #(string/replace % #"^." val)))
 
-(extend-type cljs.core.PersistentVector
+(defn set-char! [s i c]
+  (str (.substring s 0 i) c (.substring s (inc i))))
+
+(extend-type array
   IHighlightable
   (-highlight! [list n]
-    (set-highlight-column list n ">"))
+    (aset list n (set-char! (aget list n) 0 ">"))
+    list)
   (-unhighlight! [list n]
-    (set-highlight-column list n " "))
+    (aset list n (set-char! (aget list n) 0 " "))
+    list)
   
   ISelectable
   (-select! [list n]
-    (set-select-column list n "*"))
+    (log n)
+    (log (aget list n))
+    (aset list n (set-char! (aget list n) 1 "*"))
+    list)
   (-unselect! [list n]
-    (set-select-column list n " ")))
+    (aset list n (set-char! (aget list n) 1 " "))
+    list))
+
+(extend-type js/HTMLUListElement
+  ICounted
+  (-count [list]
+    (count (dom/by-tag-name list "li")))
+
+  IHighlightable
+  (-highlight! [list n]
+    (dom/add-class! (nth (dom/by-tag-name list "li") n) "highlighted")
+    list)
+  (-unhighlight! [list n]
+    (dom/remove-class! (nth (dom/by-tag-name list "li") n) "highlighted")
+    list)
+  
+  ISelectable
+  (-select! [list n]
+    (dom/add-class! (nth (dom/by-tag-name list "li") n) "selected")
+    list)
+  (-unselect! [list n]
+    (dom/remove-class! (nth (dom/by-tag-name list "li") n) "selected")
+    list))
 
 ; Pure data
 (def keycode->key
@@ -64,24 +100,21 @@
    :highlight/next     inc})
 
 (def ex0-ui
-  ["   Alan Kay"
-   "   J.C.R. Licklider"
-   "   John McCarthy"])
+  (array "   Alan Kay"
+         "   J.C.R. Licklider"
+         "   John McCarthy" ))
 
 (def ex1-ui
-  ["   Smalltalk"
-   "   Lisp"
-   "   Prolog"
-   "   ML"])
+  (array "   Smalltalk"
+         "   Lisp"
+         "   Prolog"
+         "   ML" ))
 
 (def first-state
   {:highlight 0 :selection nil})
 
 
 ; Utility
-(defn log-stream [stream]
-  (mapd* (fn [v] (js/console.log (clj->js v)) v) stream))
-
 (defn remember-selection
   "Stores current highlight as selection when select events occur. Otherwise
   updates remembered highlight."
@@ -91,10 +124,9 @@
     (assoc mem :highlight event)))
 
 (defn render-ui [ui {:keys [highlight selection]}]
-  (string/join "\n"
-    (-> ui
-      (-select! selection)
-      (-highlight! highlight))))
+  (if selection (-select! ui selection))
+  (-highlight! ui highlight)
+  (string/join "\n" ui))
 
 ; Pure stream processing
 (defn identify-key-actions [keydowns]
@@ -146,11 +178,17 @@
         ui-states                  (reductions* (fmap remember-selection) (promise first-state) highlights-and-selects)
 
         ; Rendered UIs
-        uis                        (mapd* (partial render-ui ui) ui-states)]
+        uis                        (mapd* (partial render-ui ui) ui-states)
+        ]
+    (log-stream ui-states)
     uis))
 
 (mapd* #(text ($ "#ex0") %) (load-example ex0-ui))
-(mapd* #(text ($ "#ex1") %) (load-example ex1-ui))
+; (mapd* #(text ($ "#ex1") %) (load-example ex1-ui))
 
 (text ($ "#ex0") (string/join "\n" ex0-ui))
-(text ($ "#ex1") (string/join "\n" ex1-ui))
+; (text ($ "#ex1") (string/join "\n" ex1-ui))
+
+
+(log (-highlight! (-highlight! ex0-ui 1) 0))
+
