@@ -83,6 +83,17 @@
     (update-in ui [selection] #(set-char % 1 "*"))
     ui))
 
+(defn rendering-actions [element rendered-ui]
+  [[:dom/set-text element rendered-ui]])
+
+(defmulti execute first)
+
+(defmethod execute :dom/set-text [[_ element content]]
+  (text element content))
+
+(defn execute-dom-transaction [transaction]
+  (mapv execute transaction))
+
 ; Side effects
 (defn load-example [element ui]
   (let [wrap-at                    (count ui)
@@ -124,10 +135,15 @@
         ; Render actions
         highlighted-uis            (mapd* (partial render-highlight ui) ui-states)
         selected-uis               (mapd* render-selection (zip* highlighted-uis ui-states))
-        rendered-uis               (mapd* (partial string/join "\n") selected-uis)]
+        rendered-uis               (mapd* (partial string/join "\n") selected-uis)
+        dom-transactions           (mapd* (partial rendering-actions element) rendered-uis)]
+
+    ; Side effects
+    (mapd* execute-dom-transaction dom-transactions)
+
     rendered-uis))
 
 (mapd* (partial text ($ "#ex0")) (load-example ($ "#ex0") ex0-ui))
 
-(text ($ "#ex0") (string/join "\n" ex0-ui))
+(execute-dom-transaction [[:dom/set-text ($ "#ex0") (string/join "\n" ex0-ui)]])
 
