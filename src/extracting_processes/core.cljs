@@ -140,24 +140,25 @@
         rendered-uis               (mapd* (partial string/join "\n") selected-uis)]
     (mapd* (partial rendering-actions element) rendered-uis)))
 
-(defn functional-core [element ui raw-events]
-  (->> raw-events
-       identify-events
-       (manage-state (count ui))
+(defn menu-logic [element ui events]
+  (->> (manage-state (count ui) events)
        (plan-changes element ui)))
 
-(defn load-example [element ui]
+(defn connect-to-dom [menu-logic element ui]
   (let [keydowns                   (sources/callback->promise-stream on element "keydown")
-        mouseovers                 (sources/callback->promise-stream on ($ "li" element)  "mouseover")
-        mouseouts                  (sources/callback->promise-stream on ($ element)  "mouseout")
-        clicks                     (sources/callback->promise-stream on ($ "li" element)  "click")
+        mouseovers                 (sources/callback->promise-stream on ($ "li" element) "mouseover")
+        mouseouts                  (sources/callback->promise-stream on ($ element) "mouseout")
+        clicks                     (sources/callback->promise-stream on ($ "li" element) "click")
 
         raw-events                 (concat* keydowns mouseovers mouseouts clicks)]
     (->> raw-events
-         (functional-core element ui)
+         identify-events
+         (menu-logic element ui)
          (mapd* execute-dom-transaction))))
 
-(load-example ($ "#ex0") ex0-ui)
+(defn create-menu [element ui]
+  (execute-dom-transaction [[:dom/set-text element (string/join "\n" ui)]])
+  (connect-to-dom menu-logic element ui))
 
-(execute-dom-transaction [[:dom/set-text ($ "#ex0") (string/join "\n" ex0-ui)]])
+(create-menu ($ "#ex0") ex0-ui)
 
