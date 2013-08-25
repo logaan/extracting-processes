@@ -1,6 +1,6 @@
 (ns extracting-processes.core
   (:use [promise_stream.pstream :only [mapd* filter* concat* reductions*
-                                       promise fmap]]
+                                       zip* promise fmap]]
         [jayq.core :only [$ on text]])
   (:require [clojure.string :as string]
             [promise_stream.pstream :as ps]
@@ -39,15 +39,15 @@
    :highlight/next     inc})
 
 (def ex0-ui
-  (array "   Alan Kay"
-         "   J.C.R. Licklider"
-         "   John McCarthy" ))
+  ["   Alan Kay"
+   "   J.C.R. Licklider"
+   "   John McCarthy" ])
 
 (def ex1-ui
-  (array "   Smalltalk"
-         "   Lisp"
-         "   Prolog"
-         "   ML" ))
+  ["   Smalltalk"
+   "   Lisp"
+   "   Prolog"
+   "   ML" ])
 
 (def first-state
   {:highlight 0 :selection nil})
@@ -72,8 +72,16 @@
 (defn mouseover->highlight [mouseover]
   (.index (jq/$ (.-target mouseover))))
 
-(defn render-pre-ui [state]
-  (log state))
+(defn set-char [s i c]
+  (str (.substring s 0 i) c (.substring s (inc i))))
+
+(defn render-highlight [ui {highlight :highlight}]
+  (update-in ui [highlight] #(set-char % 0 ">")))
+
+(defn render-selection [[ui {selection :selection}]]
+  (if selection
+    (update-in ui [selection] #(set-char % 1 "*"))
+    ui))
 
 ; Side effects
 (defn load-example [element ui]
@@ -114,10 +122,12 @@
         ui-states                  (reductions* (fmap remember-selection) (promise first-state) highlights-and-selects)
         
         ; Render actions
-        render-actions             (mapd* render-pre-ui ui-states)]
-    ui-states))
+        highlighted-uis            (mapd* (partial render-highlight ui) ui-states)
+        selected-uis               (mapd* render-selection (zip* highlighted-uis ui-states))
+        rendered-uis               (mapd* (partial string/join "\n") selected-uis)]
+    rendered-uis))
 
-(log-stream (load-example ($ "#ex0") ex0-ui))
+(mapd* (partial text ($ "#ex0")) (load-example ($ "#ex0") ex0-ui))
 
 (text ($ "#ex0") (string/join "\n" ex0-ui))
 
