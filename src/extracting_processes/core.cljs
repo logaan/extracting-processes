@@ -3,7 +3,7 @@
                                        promise fmap]]
         [jayq.core :only [$ on text]])
   (:require [clojure.string :as string]
-            [promise_stream.pstream :as ps]  
+            [promise_stream.pstream :as ps]
             [promise_stream.sources :as sources]
             [jayq.core :as jq]))
 
@@ -22,15 +22,6 @@
   (-select! [list n])
   (-unselect! [list n]))
 
-; Highlighting and selecting for vec->indented str ui
-(defn set-select-column [list n val]
-  (if n
-    (update-in list [n] #(string/replace % #"^.." (str " " val)))
-    list))
-
-(defn set-highlight-column [list n val]
-  (update-in list [n] #(string/replace % #"^." val)))
-
 (defn set-char! [s i c]
   (str (.substring s 0 i) c (.substring s (inc i))))
 
@@ -42,7 +33,7 @@
   (-unhighlight! [list n]
     (aset list n (set-char! (aget list n) 0 " "))
     list)
-  
+
   ISelectable
   (-select! [list n]
     (log n)
@@ -65,7 +56,7 @@
   (-unhighlight! [list n]
     (dom/remove-class! (nth (dom/by-tag-name list "li") n) "highlighted")
     list)
-  
+
   ISelectable
   (-select! [list n]
     (dom/add-class! (nth (dom/by-tag-name list "li") n) "selected")
@@ -131,7 +122,7 @@
 ; Pure stream processing
 (defn identify-key-actions [keydowns]
   (->> keydowns
-       (mapd*   #(aget % "which")) 
+       (mapd*   #(aget % "which"))
        (mapd*   keycode->key)
        (filter* (comp promise identity))
        (mapd*   key->action)))
@@ -142,7 +133,7 @@
 ; Side effects
 (defn load-example [ui]
   (let [wrap-at                    (count ui)
-        
+
         ; Raw events
         keydowns                   (sources/callback->promise-stream on ($ "div") "keydown")
         mouseovers                 (sources/callback->promise-stream on ($ "li")  "mouseover")
@@ -160,7 +151,7 @@
 
         mouse-highlight-indexes    (mapd* mouseover->highlight mouseovers)
 
-        clears                     (mapd* (constantly :clear) mouseouts) 
+        clears                     (mapd* (constantly :clear) mouseouts)
 
         ; Highlight modifyers
         highlight-index-offsets    (mapd* highlight-action->offset highlight-moves)
