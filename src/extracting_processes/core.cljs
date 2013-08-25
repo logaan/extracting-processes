@@ -13,58 +13,6 @@
 (defn log-stream [stream]
   (mapd* log stream))
 
-; Protocols
-(defprotocol IHighlightable
-  (-highlight! [list n])
-  (-unhighlight! [list n]))
-
-(defprotocol ISelectable
-  (-select! [list n])
-  (-unselect! [list n]))
-
-(defn set-char! [s i c]
-  (str (.substring s 0 i) c (.substring s (inc i))))
-
-(extend-type array
-  IHighlightable
-  (-highlight! [list n]
-    (aset list n (set-char! (aget list n) 0 ">"))
-    list)
-  (-unhighlight! [list n]
-    (aset list n (set-char! (aget list n) 0 " "))
-    list)
-
-  ISelectable
-  (-select! [list n]
-    (log n)
-    (log (aget list n))
-    (aset list n (set-char! (aget list n) 1 "*"))
-    list)
-  (-unselect! [list n]
-    (aset list n (set-char! (aget list n) 1 " "))
-    list))
-
-(extend-type js/HTMLUListElement
-  ICounted
-  (-count [list]
-    (count (dom/by-tag-name list "li")))
-
-  IHighlightable
-  (-highlight! [list n]
-    (dom/add-class! (nth (dom/by-tag-name list "li") n) "highlighted")
-    list)
-  (-unhighlight! [list n]
-    (dom/remove-class! (nth (dom/by-tag-name list "li") n) "highlighted")
-    list)
-
-  ISelectable
-  (-select! [list n]
-    (dom/add-class! (nth (dom/by-tag-name list "li") n) "selected")
-    list)
-  (-unselect! [list n]
-    (dom/remove-class! (nth (dom/by-tag-name list "li") n) "selected")
-    list))
-
 ; Pure data
 (def keycode->key
   {38 :up
@@ -104,7 +52,6 @@
 (def first-state
   {:highlight 0 :selection nil})
 
-
 ; Utility
 (defn remember-selection
   "Stores current highlight as selection when select events occur. Otherwise
@@ -113,11 +60,6 @@
   (if (= event :select/current)
     (assoc mem :selection highlight)
     (assoc mem :highlight event)))
-
-(defn render-ui [ui {:keys [highlight selection]}]
-  (if selection (-select! ui selection))
-  (-highlight! ui highlight)
-  (string/join "\n" ui))
 
 ; Pure stream processing
 (defn identify-key-actions [keydowns]
@@ -130,15 +72,18 @@
 (defn mouseover->highlight [mouseover]
   (.index (jq/$ (.-target mouseover))))
 
+(defn render-pre-ui [state]
+  (log state))
+
 ; Side effects
-(defn load-example [ui]
+(defn load-example [element ui]
   (let [wrap-at                    (count ui)
 
         ; Raw events
-        keydowns                   (sources/callback->promise-stream on ($ "div") "keydown")
-        mouseovers                 (sources/callback->promise-stream on ($ "li")  "mouseover")
-        mouseouts                  (sources/callback->promise-stream on ($ "ul")  "mouseout")
-        clicks                     (sources/callback->promise-stream on ($ "li")  "click")
+        keydowns                   (sources/callback->promise-stream on element "keydown")
+        mouseovers                 (sources/callback->promise-stream on ($ "li" element)  "mouseover")
+        mouseouts                  (sources/callback->promise-stream on ($ element)  "mouseout")
+        clicks                     (sources/callback->promise-stream on ($ "li" element)  "click")
 
         ; Identified events
         key-actions                (identify-key-actions keydowns)
@@ -167,19 +112,12 @@
 
         ; UI states
         ui-states                  (reductions* (fmap remember-selection) (promise first-state) highlights-and-selects)
+        
+        ; Render actions
+        render-actions             (mapd* render-pre-ui ui-states)]
+    ui-states))
 
-        ; Rendered UIs
-        uis                        (mapd* (partial render-ui ui) ui-states)
-        ]
-    (log-stream ui-states)
-    uis))
-
-(mapd* #(text ($ "#ex0") %) (load-example ex0-ui))
-; (mapd* #(text ($ "#ex1") %) (load-example ex1-ui))
+(log-stream (load-example ($ "#ex0") ex0-ui))
 
 (text ($ "#ex0") (string/join "\n" ex0-ui))
-; (text ($ "#ex1") (string/join "\n" ex1-ui))
-
-
-(log (-highlight! (-highlight! ex0-ui 1) 0))
 
