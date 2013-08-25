@@ -99,45 +99,52 @@
   (fn [raw-event]
     (promise (= desired-type (aget raw-event "type")))))
 
-(defn functional-core [element ui raw-events]
+(defn identify-events [raw-events]
   (let [keydowns                   (filter* (of-type "keydown")   raw-events)
         mouseovers                 (filter* (of-type "mouseover") raw-events)
         mouseouts                  (filter* (of-type "mouseout")  raw-events)
         clicks                     (filter* (of-type "click")     raw-events)
 
-        ; Identified events
         key-actions                (identify-key-actions keydowns)
 
         key-selects                (filter* (comp promise select-actions) key-actions)
-        mouse-selects              (mapd* (constantly :select) clicks)
+        mouse-selects              (mapd* (constantly :select/current) clicks)
         selects                    (concat* key-selects mouse-selects)
 
         highlight-moves            (filter* (comp promise highlight-actions) key-actions)
 
         mouse-highlight-indexes    (mapd* mouseover->highlight mouseovers)
 
-        clears                     (mapd* (constantly :clear) mouseouts)
+        clears                     (mapd* (constantly :clear) mouseouts)]
+    (concat* selects highlight-moves mouse-highlight-indexes  clears)))
 
-        ; Highlight modifyers
+(defn manage-state [number-of-rows identified-events]
+  (let [highlight-moves            (filter* (comp promise highlight-actions)  identified-events)
+        mouse-highlight-indexes    (filter* (comp promise number?)            identified-events)
+        selects                    (filter* (comp promise #{:select/current}) identified-events)
+        clears                     (filter* (comp promise #{:clear})          identified-events)
+        
         highlight-index-offsets    (mapd* highlight-action->offset highlight-moves)
         highlight-index-resets     (mapd* constantly mouse-highlight-indexes)
 
-        ; Highlight index
         highlight-modifyers        (concat* highlight-index-offsets highlight-index-resets)
         raw-highlight-indexes      (reductions* (fmap (fn [v f] (f v))) (promise 0) highlight-modifyers)
-        wrapped-highlight-indexes  (mapd* #(mod % (count ui)) raw-highlight-indexes)
+        wrapped-highlight-indexes  (mapd* #(mod % number-of-rows) raw-highlight-indexes)
 
-        ; Highlights and selects
-        highlights-and-selects     (concat* wrapped-highlight-indexes selects)
+        highlights-and-selects     (concat* wrapped-highlight-indexes selects)]
+    (reductions* (fmap remember-selection) (promise first-state) highlights-and-selects)))
 
-        ; UI states
-        ui-states                  (reductions* (fmap remember-selection) (promise first-state) highlights-and-selects)
-        
-        ; Render actions
-        highlighted-uis            (mapd* (partial render-highlight ui) ui-states)
+(defn plan-changes [element ui ui-states]
+  (let [highlighted-uis            (mapd* (partial render-highlight ui) ui-states)
         selected-uis               (mapd* render-selection (zip* highlighted-uis ui-states))
         rendered-uis               (mapd* (partial string/join "\n") selected-uis)]
     (mapd* (partial rendering-actions element) rendered-uis)))
+
+(defn functional-core [element ui raw-events]
+  (->> raw-events
+       identify-events
+       (manage-state (count ui))
+       (plan-changes element ui)))
 
 (defn load-example [element ui]
   (let [keydowns                   (sources/callback->promise-stream on element "keydown")
