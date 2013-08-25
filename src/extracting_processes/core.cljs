@@ -8,7 +8,8 @@
             [jayq.core :as jq]))
 
 (defn log [clj-value]
-  (js/console.log (clj->js clj-value)))
+  (js/console.log (clj->js clj-value))
+  clj-value)
 
 (defn log-stream [stream]
   (mapd* log stream))
@@ -94,15 +95,15 @@
 (defn execute-dom-transaction [transaction]
   (mapv execute transaction))
 
-; Side effects
-(defn load-example [element ui]
-  (let [wrap-at                    (count ui)
+(defn of-type [desired-type]
+  (fn [raw-event]
+    (promise (= desired-type (aget raw-event "type")))))
 
-        ; Raw events
-        keydowns                   (sources/callback->promise-stream on element "keydown")
-        mouseovers                 (sources/callback->promise-stream on ($ "li" element)  "mouseover")
-        mouseouts                  (sources/callback->promise-stream on ($ element)  "mouseout")
-        clicks                     (sources/callback->promise-stream on ($ "li" element)  "click")
+(defn functional-core [element ui raw-events]
+  (let [keydowns                   (filter* (of-type "keydown")   raw-events)
+        mouseovers                 (filter* (of-type "mouseover") raw-events)
+        mouseouts                  (filter* (of-type "mouseout")  raw-events)
+        clicks                     (filter* (of-type "click")     raw-events)
 
         ; Identified events
         key-actions                (identify-key-actions keydowns)
@@ -124,7 +125,7 @@
         ; Highlight index
         highlight-modifyers        (concat* highlight-index-offsets highlight-index-resets)
         raw-highlight-indexes      (reductions* (fmap (fn [v f] (f v))) (promise 0) highlight-modifyers)
-        wrapped-highlight-indexes  (mapd* #(mod % wrap-at) raw-highlight-indexes)
+        wrapped-highlight-indexes  (mapd* #(mod % (count ui)) raw-highlight-indexes)
 
         ; Highlights and selects
         highlights-and-selects     (concat* wrapped-highlight-indexes selects)
@@ -135,15 +136,21 @@
         ; Render actions
         highlighted-uis            (mapd* (partial render-highlight ui) ui-states)
         selected-uis               (mapd* render-selection (zip* highlighted-uis ui-states))
-        rendered-uis               (mapd* (partial string/join "\n") selected-uis)
-        dom-transactions           (mapd* (partial rendering-actions element) rendered-uis)]
+        rendered-uis               (mapd* (partial string/join "\n") selected-uis)]
+    (mapd* (partial rendering-actions element) rendered-uis)))
 
-    ; Side effects
-    (mapd* execute-dom-transaction dom-transactions)
+(defn load-example [element ui]
+  (let [keydowns                   (sources/callback->promise-stream on element "keydown")
+        mouseovers                 (sources/callback->promise-stream on ($ "li" element)  "mouseover")
+        mouseouts                  (sources/callback->promise-stream on ($ element)  "mouseout")
+        clicks                     (sources/callback->promise-stream on ($ "li" element)  "click")
 
-    rendered-uis))
+        raw-events                 (concat* keydowns mouseovers mouseouts clicks)]
+    (->> raw-events
+         (functional-core element ui)
+         (mapd* execute-dom-transaction))))
 
-(mapd* (partial text ($ "#ex0")) (load-example ($ "#ex0") ex0-ui))
+(load-example ($ "#ex0") ex0-ui)
 
 (execute-dom-transaction [[:dom/set-text ($ "#ex0") (string/join "\n" ex0-ui)]])
 
